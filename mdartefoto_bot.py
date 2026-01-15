@@ -36,7 +36,7 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html)
 <h1 style="
     text-align:center;
     font-family:Arial;
-    font-size:28px;
+    font-size:26px;
     font-weight:bold;
     color:#686868;
     margin:20px 0;
