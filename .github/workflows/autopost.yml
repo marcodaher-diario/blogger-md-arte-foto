@@ -1,0 +1,29 @@
+name: Publicar no Blogger
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Todos os dias às 09h (horário Brasil)
+  workflow_dispatch:
+
+jobs:
+  autopost:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do repositório
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Instalar dependências
+      run: |
+        pip install -r requirements.txt
+
+    - name: Publicar Post
+      env:
+        BLOGGER_TOKEN: ${{ secrets.BLOGGER_TOKEN }}
+      run: |
+        python main.py
