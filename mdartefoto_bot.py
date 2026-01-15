@@ -3,17 +3,44 @@ import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-SCOPES = ['https://www.googleapis.com/auth/blogger']
-BLOG_ID = '5852420775961497718'
+# ===============================
+# CONFIGURAÇÕES
+# ===============================
+SCOPES = ["https://www.googleapis.com/auth/blogger"]
+BLOG_ID = "5852420775961497718"
 
 
-# 🔧 FUNÇÃO DE MONTAGEM DO HTML
-def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
+# ===============================
+# FORMATA TEXTO EM PARÁGRAFOS HTML
+# ===============================
+def formatar_artigo_html(texto):
+    paragrafos = texto.split("\n\n")
+    html = ""
+
+    for p in paragrafos:
+        p = p.strip()
+        if p:
+            html += f"<p>{p}</p>\n"
+
+    return html
+
+
+# ===============================
+# MONTA O HTML FINAL DO POST
+# ===============================
+def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html):
 
     html = f"""
 <div class="post-body entry-content">
 
-<h1 style="text-align:center;font-family:Arial;font-size:24px;font-weight:bold;color:#686868;margin:20px 0;">
+<h1 style="
+    text-align:center;
+    font-family:Arial;
+    font-size:28px;
+    font-weight:bold;
+    color:#686868;
+    margin:20px 0;
+">
 {titulo}
 </h1>
 
@@ -25,8 +52,14 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
 
 <br><br>
 
-<div style="font-family:Arial;font-size:12px;color:#686868;text-align:justify;line-height:1.3;">
-{texto_artigo}
+<div style="
+    font-family:Arial;
+    font-size:18px;
+    color:#686868;
+    text-align:justify;
+    line-height:1.3;
+">
+{texto_artigo_html}
 </div>
 
 <div style="margin-top:30px;">
@@ -38,38 +71,40 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
     return html
 
 
-# 🚀 FUNÇÃO PRINCIPAL
+# ===============================
+# FUNÇÃO PRINCIPAL
+# ===============================
 def publicar_post():
-    if "BLOGGER_TOKEN" in os.environ:
-        token_info = json.loads(os.environ["BLOGGER_TOKEN"])
-    else:
-        raise Exception("Variável de ambiente BLOGGER_TOKEN não encontrada.")
-    
-   # 🖥️ Execução local
+
+    # 🔐 AUTENTICAÇÃO LOCAL (token.json)
     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    service = build('blogger', 'v3', credentials=creds)
+    service = build("blogger", "v3", credentials=creds)
 
     # 📂 LEITURA DOS ARQUIVOS
     with open("content/titulo.txt", "r", encoding="utf-8") as f:
         titulo = f.read().strip()
 
     with open("content/artigo_pronto.txt", "r", encoding="utf-8") as f:
-        texto_artigo = f.read()
+        texto_raw = f.read()
 
     with open("content/assinatura.html", "r", encoding="utf-8") as f:
         assinatura_html = f.read()
 
-    # 🖼️ URL DA IMAGEM (depois automatizamos)
+    # 🧠 CONVERTE PARÁGRAFOS
+    texto_artigo_html = formatar_artigo_html(texto_raw)
+
+    # 🖼️ URL DA IMAGEM DE CAPA
     imagem_url = "https://URL-DA-SUA-IMAGEM.jpg"
 
-    # 🧠 MONTA HTML FINAL
+    # 🧩 MONTA HTML FINAL
     conteudo_html = montar_conteudo_post(
         titulo,
         imagem_url,
-        texto_artigo,
+        texto_artigo_html,
         assinatura_html
     )
 
+    # 📤 PUBLICAÇÃO
     post = {
         "title": titulo,
         "content": conteudo_html
@@ -84,5 +119,8 @@ def publicar_post():
     print("Post publicado com sucesso!")
 
 
+# ===============================
+# EXECUÇÃO
+# ===============================
 if __name__ == "__main__":
     publicar_post()
