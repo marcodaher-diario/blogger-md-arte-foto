@@ -3,9 +3,12 @@ import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
+
 # ===============================
 # CONFIGURAÇÕES
 # ===============================
+print("Diretório atual:", os.getcwd())
+print("Arquivos em content:", os.listdir("content"))
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
 
