@@ -1,3 +1,5 @@
+import os
+import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -5,7 +7,7 @@ SCOPES = ['https://www.googleapis.com/auth/blogger']
 BLOG_ID = '5852420775961497718'
 
 
-# 🔧 FUNÇÃO DE MONTAGEM DO HTML (INSERIR AQUI)
+# 🔧 FUNÇÃO DE MONTAGEM DO HTML
 def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
 
     html = f"""
@@ -21,7 +23,9 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
        style="max-width:680px;width:100%;height:auto;" />
 </div>
 
-<div>
+<br><br>
+
+<div style="font-family:Arial;font-size:12px;color:#686868;text-align:justify;line-height:1.3;">
 {texto_artigo}
 </div>
 
@@ -34,10 +38,15 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo, assinatura_html):
     return html
 
 
-# 🚀 FUNÇÃO PRINCIPAL DE PUBLICAÇÃO
+# 🚀 FUNÇÃO PRINCIPAL
 def publicar_post():
-
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if "BLOGGER_TOKEN" in os.environ:
+        token_info = json.loads(os.environ["BLOGGER_TOKEN"])
+    else:
+        raise Exception("Variável de ambiente BLOGGER_TOKEN não encontrada.")
+    
+   # 🖥️ Execução local
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
     service = build('blogger', 'v3', credentials=creds)
 
     # 📂 LEITURA DOS ARQUIVOS
@@ -50,9 +59,10 @@ def publicar_post():
     with open("content/assinatura.html", "r", encoding="utf-8") as f:
         assinatura_html = f.read()
 
+    # 🖼️ URL DA IMAGEM (depois automatizamos)
     imagem_url = "https://URL-DA-SUA-IMAGEM.jpg"
 
-    # 🧠 MONTA O HTML FINAL
+    # 🧠 MONTA HTML FINAL
     conteudo_html = montar_conteudo_post(
         titulo,
         imagem_url,
