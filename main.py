@@ -1,7 +1,8 @@
 import os
-import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 
 # ===============================
 # CONFIGURAÇÕES
@@ -9,6 +10,29 @@ from google.oauth2.credentials import Credentials
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
 
+# ===============================
+# AUTENTICAÇÃO GOOGLE
+# ===============================
+def autenticar():
+    creds = None
+
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "client_secret.json",
+                SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+
+        with open("token.json", "w", encoding="utf-8") as token:
+            token.write(creds.to_json())
+
+    return creds
 
 # ===============================
 # FORMATA TEXTO EM PARÁGRAFOS HTML
@@ -24,41 +48,22 @@ def formatar_artigo_html(texto):
 
     return html
 
-
 # ===============================
 # MONTA O HTML FINAL DO POST
 # ===============================
 def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html):
-
-    html = f"""
+    return f"""
 <div class="post-body entry-content">
 
-<h1 style="
-    text-align:center;
-    font-family:Arial;
-    font-size:26px;
-    font-weight:bold;
-    color:#686868;
-    margin:20px 0;
-">
+<h1 style="text-align:center;font-family:Arial;font-size:26px;font-weight:bold;color:#686868;margin:20px 0;">
 {titulo}
 </h1>
 
 <div style="text-align:center;margin-bottom:20px;">
-  <img src="{imagem_url}"
-       alt="{titulo}"
-       style="max-width:680px;width:100%;height:auto;" />
+  <img src="{imagem_url}" alt="{titulo}" style="max-width:680px;width:100%;height:auto;" />
 </div>
 
-<br><br>
-
-<div style="
-    font-family:Arial;
-    font-size:18px;
-    color:#686868;
-    text-align:justify;
-    line-height:1.3;
-">
+<div style="font-family:Arial;font-size:18px;color:#686868;text-align:justify;line-height:1.6;">
 {texto_artigo_html}
 </div>
 
@@ -68,16 +73,12 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html)
 
 </div>
 """
-    return html
-
 
 # ===============================
 # FUNÇÃO PRINCIPAL
 # ===============================
 def publicar_post():
-
-    # 🔐 AUTENTICAÇÃO LOCAL (token.json)
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
     # 📂 LEITURA DOS ARQUIVOS
@@ -90,13 +91,13 @@ def publicar_post():
     with open("content/assinatura.html", "r", encoding="utf-8") as f:
         assinatura_html = f.read()
 
-    # 🧠 CONVERTE PARÁGRAFOS
+    # 🧠 CONVERSÃO PARA HTML COM PARÁGRAFOS
     texto_artigo_html = formatar_artigo_html(texto_raw)
 
-    # 🖼️ URL DA IMAGEM DE CAPA
+    # 🖼️ IMAGEM DE CAPA
     imagem_url = "https://URL-DA-SUA-IMAGEM.jpg"
 
-    # 🧩 MONTA HTML FINAL
+    # 🧩 HTML FINAL
     conteudo_html = montar_conteudo_post(
         titulo,
         imagem_url,
@@ -116,8 +117,7 @@ def publicar_post():
         isDraft=False
     ).execute()
 
-    print("Post publicado com sucesso!")
-
+    print("✅ Post publicado com sucesso!")
 
 # ===============================
 # EXECUÇÃO
