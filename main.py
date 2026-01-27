@@ -3,142 +3,144 @@ import json
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from google.oauth2.service_account import Credentials as ServiceCredentials
 
 # ===============================
 # CONFIGURAÇÕES
 # ===============================
-SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
-CONTENT_DIR = "content"
 
-FILA_PATH = os.path.join(CONTENT_DIR, "fila_temas.json")
-CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
+SCOPES_BLOGGER = ["https://www.googleapis.com/auth/blogger"]
+SCOPES_SHEETS = ["https://www.googleapis.com/auth/spreadsheets"]
 
-INTERVALO_DIAS = 0  # teste imediato
+SHEET_ID = os.getenv("SHEET_ID")
+SHEET_NAME = "posts"
 
-os.makedirs(CONTENT_DIR, exist_ok=True)
+ASSINATURA_PATH = "content/assinatura.html"
 
-# ===============================
-# TEMAS
-# ===============================
-TEMAS = ["erros_fotografia"]
-
-CONTEUDO = {
-    "erros_fotografia": {
-        "titulo": "Erros comuns na fotografia amadora e como evitá-los",
-        # ✅ URL COMPATÍVEL COM BLOGGER
-        "imagem": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgRZ5K7N9nZ9O4Zx3f3gQb8uP8Yl4eRzJtY2p8s4rYw5j0zFj1Q6UOZ9pLx2l2x4bH1y/s1600/fotografia-camera.jpg",
-        "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
-        "texto": (
-            "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.\n\n"
-            "ISO alto sem necessidade gera ruído e perda de qualidade.\n"
-            "Ignorar a luz resulta em fotos mal iluminadas.\n"
-            "Fotos sem foco comprometem o resultado final.\n\n"
-            "Dicas práticas:\n"
-            "Observe a iluminação.\n"
-            "Use ISO baixo sempre que possível.\n"
-            "Confira o foco antes do clique.\n\n"
-            "Evitar esses erros ajuda a evoluir rapidamente na fotografia."
-        )
-    }
-}
-
-# ===============================
-# CONTROLE DE PUBLICAÇÃO
-# ===============================
-def pode_publicar():
-    if not os.path.exists(CONTROLE_PATH):
-        print("🟢 Nenhum controle encontrado. Publicação liberada.")
-        return True
-
-    with open(CONTROLE_PATH, encoding="utf-8") as f:
-        dados = json.load(f)
-
-    ultima = datetime.fromisoformat(dados["ultima_publicacao"])
-    proxima = ultima + timedelta(days=INTERVALO_DIAS)
-
-    return datetime.now() >= proxima
-
-
-def registrar_publicacao():
-    with open(CONTROLE_PATH, "w", encoding="utf-8") as f:
-        json.dump(
-            {"ultima_publicacao": datetime.now().isoformat()},
-            f,
-            indent=2,
-            ensure_ascii=False
-        )
-
-# ===============================
-# FILA DE TEMAS
-# ===============================
-def obter_tema():
-    if not os.path.exists(FILA_PATH):
-        fila = TEMAS.copy()
-    else:
-        with open(FILA_PATH, encoding="utf-8") as f:
-            fila = json.load(f)
-
-    tema = fila.pop(0)
-
-    with open(FILA_PATH, "w", encoding="utf-8") as f:
-        json.dump(fila or TEMAS.copy(), f, indent=2, ensure_ascii=False)
-
-    return tema
+INTERVALO_DIAS = 3
 
 # ===============================
 # AUTENTICAÇÃO
 # ===============================
-def autenticar():
-    token = os.getenv("BLOGGER_TOKEN", "").strip()
-    if not token:
-        raise Exception("BLOGGER_TOKEN ausente")
-    return Credentials.from_authorized_user_info(json.loads(token), SCOPES)
+def autenticar_blogger():
+    token_info = json.loads(os.environ["BLOGGER_TOKEN"])
+    return Credentials.from_authorized_user_info(token_info, SCOPES_BLOGGER)
+
+def autenticar_sheets():
+    creds_info = json.loads(os.environ["GOOGLE_SHEETS_CREDENTIALS"])
+    return ServiceCredentials.from_service_account_info(
+        creds_info,
+        scopes=SCOPES_SHEETS
+    )
 
 # ===============================
-# PUBLICAÇÃO
+# LER PLANILHA
 # ===============================
-def publicar():
-    print("🚀 Publicando no Blogger")
+def ler_posts():
+    service = build("sheets", "v4", credentials=autenticar_sheets())
+    result = service.spreadsheets().values().get(
+        spreadsheetId=SHEET_ID,
+        range=f"{SHEET_NAME}!A2:I"
+    ).execute()
+    return result.get("values", [])
 
-    tema_key = obter_tema()
-    tema = CONTEUDO[tema_key]
+# ===============================
+# ATUALIZAR STATUS
+# ===============================
+def atualizar_status(linha, status):
+    service = build("sheets", "v4", credentials=autenticar_sheets())
+    service.spreadsheets().values().update(
+        spreadsheetId=SHEET_ID,
+        range=f"{SHEET_NAME}!I{linha}",
+        valueInputOption="RAW",
+        body={"values": [[status]]}
+    ).execute()
 
-    creds = autenticar()
+# ===============================
+# DATA DO ÚLTIMO POST
+# ===============================
+def ultima_data_publicada(posts):
+    datas = []
+    for post in posts:
+        if len(post) >= 9 and post[8].lower() == "publicado":
+            datas.append(datetime.strptime(post[1], "%Y-%m-%d"))
+    return max(datas) if datas else None
+
+# ===============================
+# MONTAR HTML COM IMAGENS DISTRIBUÍDAS
+# ===============================
+def montar_html(titulo, texto, assinatura):
+    paragrafos = texto.split("\n\n")
+
+    html = []
+    html.append(f'<h1 style="text-align:center;">{titulo}</h1>')
+
+    for i, p in enumerate(paragrafos):
+        html.append(
+            f'<p style="text-align:justify;font-size:18px;line-height:1.7;">{p}</p>'
+        )
+
+        # Espaços reservados para imagens (manual depois)
+        if i == 1:
+            html.append("<!-- IMAGEM_1_AQUI -->")
+        if i == len(paragrafos) // 2:
+            html.append("<!-- IMAGEM_2_AQUI -->")
+
+    html.append(assinatura)
+
+    return '<div class="post-body entry-content">' + "".join(html) + "</div>"
+
+# ===============================
+# PUBLICAR POST
+# ===============================
+def publicar_post(post, linha):
+    creds = autenticar_blogger()
     service = build("blogger", "v3", credentials=creds)
 
-    texto_html = tema["texto"].replace("\n", "<br>")
+    titulo = post[3]
+    texto = post[4]
+    labels = post[7].split(",")
 
-    html = (
-        '<div class="post-body entry-content">'
-        f'<h1 style="text-align:center;">{tema["titulo"]}</h1>'
-        '<div style="text-align:center;margin:20px 0;">'
-        f'<img src="{tema["imagem"]}" style="max-width:680px;width:100%;" alt="{tema["titulo"]}">'
-        '</div>'
-        '<div style="font-size:18px;line-height:1.6;text-align:justify;">'
-        f'{texto_html}'
-        '</div>'
-        '</div>'
-    )
+    with open(ASSINATURA_PATH, encoding="utf-8") as f:
+        assinatura = f.read()
+
+    html = montar_html(titulo, texto, assinatura)
 
     service.posts().insert(
         blogId=BLOG_ID,
         body={
-            "title": tema["titulo"],
+            "title": titulo,
             "content": html,
-            "labels": tema["labels"]
+            "labels": labels
         },
         isDraft=False
     ).execute()
 
-    registrar_publicacao()
-    print("✅ Post publicado com imagem visível")
+    atualizar_status(linha, "publicado")
 
 # ===============================
-# EXECUÇÃO
+# EXECUÇÃO PRINCIPAL
 # ===============================
+def main():
+    posts = ler_posts()
+    hoje = datetime.now()
+
+    ultima = ultima_data_publicada(posts)
+    if ultima and hoje < ultima + timedelta(days=INTERVALO_DIAS):
+        print("⏳ Intervalo de 3 dias ainda não cumprido.")
+        return
+
+    for idx, post in enumerate(posts, start=2):
+        if post[8].lower() == "pendente":
+            data_post = datetime.strptime(post[1], "%Y-%m-%d")
+            if data_post <= hoje:
+                print(f"📝 Publicando post ID {post[0]}")
+                publicar_post(post, idx)
+                print("✅ Post publicado com sucesso")
+                return
+
+    print("⏳ Nenhum post pendente para publicar hoje.")
+
 if __name__ == "__main__":
-    if pode_publicar():
-        publicar()
-    else:
-        print("⏹️ Execução finalizada sem publicação")
+    main()
