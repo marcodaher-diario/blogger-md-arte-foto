@@ -27,6 +27,9 @@ def gerar_conteudo_ia():
     if not api_key:
         raise Exception("❌ OPENAI_API_KEY não encontrada no ambiente")
 
+    # Remove qualquer espaço ou quebra invisível
+    api_key = api_key.strip()
+
     client = OpenAI(api_key=api_key)
 
     prompt = (
@@ -56,7 +59,7 @@ def gerar_conteudo_ia():
     titulo = texto.split("TÍTULO:")[1].split("ARTIGO:")[0].strip()
     artigo = texto.split("ARTIGO:")[1].strip()
 
-    # Salva arquivos
+    # Salva os arquivos de conteúdo
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
         f.write(titulo)
 
@@ -64,8 +67,8 @@ def gerar_conteudo_ia():
         f.write(artigo)
 
     print("✅ Conteúdo gerado com sucesso")
-    print(f"📝 Título gerado ({len(titulo)} caracteres)")
-    print(f"📄 Artigo gerado ({len(artigo)} caracteres)")
+    print(f"📝 Título gerado: {len(titulo)} caracteres")
+    print(f"📄 Artigo gerado: {len(artigo)} caracteres")
 
 # ===============================
 # AUTENTICAÇÃO BLOGGER
@@ -91,7 +94,7 @@ def formatar_artigo_html(texto):
     )
 
 # ===============================
-# PUBLICAR NO BLOGGER
+# PUBLICA NO BLOGGER
 # ===============================
 def publicar_post():
     print("🚀 Publicando no Blogger")
