@@ -1,5 +1,6 @@
 import os
 import json
+import random
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -11,100 +12,126 @@ BLOG_ID = "5852420775961497718"
 CONTENT_DIR = "content"
 
 print("📂 Diretório atual:", os.getcwd())
-
 os.makedirs(CONTENT_DIR, exist_ok=True)
 print("📁 Arquivos em content:", os.listdir(CONTENT_DIR))
 
 # ===============================
-# GERADOR DE CONTEÚDO (SEM IA)
+# TEMAS DINÂMICOS DE FOTOGRAFIA
+# ===============================
+TEMAS = {
+    "erros_fotografia": {
+        "titulo": "Erros comuns na fotografia amadora e como evitá-los",
+        "introducao": (
+            "Muitos iniciantes na fotografia enfrentam dificuldades logo no começo, "
+            "não por falta de equipamento, mas por cometer erros simples que afetam "
+            "diretamente a qualidade das fotos."
+        ),
+        "itens": [
+            ("Usar ISO alto sem necessidade",
+             "Aumentar o ISO sem necessidade gera ruído e reduz a qualidade da imagem."),
+            ("Ignorar a iluminação",
+             "Não observar a luz resulta em fotos escuras, estouradas ou sem contraste."),
+            ("Fotos sem foco",
+             "A falta de atenção ao foco é uma das principais causas de imagens ruins."),
+            ("Confiar apenas no modo automático",
+             "O modo automático limita o controle criativo do fotógrafo."),
+            ("Não estabilizar a câmera",
+             "Baixa velocidade sem apoio causa fotos tremidas."),
+        ],
+        "dicas": [
+            "Observe a luz antes de fotografar",
+            "Use o ISO mais baixo possível",
+            "Confira o foco antes do clique",
+            "Experimente modos semi-manuais",
+            "Use tripé em pouca luz",
+        ],
+        "conclusao": (
+            "Evitar esses erros ajuda o fotógrafo iniciante a evoluir rapidamente e "
+            "obter imagens com melhor qualidade."
+        ),
+    },
+
+    "iso": {
+        "titulo": "O que é ISO na fotografia e como usar corretamente",
+        "introducao": (
+            "O ISO é um dos principais ajustes da câmera e influencia diretamente "
+            "na luminosidade e na qualidade da imagem."
+        ),
+        "itens": [
+            ("ISO baixo",
+             "Ideal para ambientes bem iluminados, garantindo imagens mais limpas."),
+            ("ISO alto",
+             "Usado em pouca luz, mas pode gerar ruído."),
+            ("Ruído digital",
+             "Aumenta conforme o ISO sobe."),
+        ],
+        "dicas": [
+            "Use ISO baixo sempre que possível",
+            "Aumente o ISO apenas quando faltar luz",
+            "Prefira boa iluminação ao invés de ISO alto",
+        ],
+        "conclusao": (
+            "Entender o ISO permite fotografar melhor em diferentes condições de luz."
+        ),
+    },
+
+    "abertura": {
+        "titulo": "Abertura do diafragma explicada para iniciantes",
+        "introducao": (
+            "A abertura do diafragma controla a entrada de luz e a profundidade de campo."
+        ),
+        "itens": [
+            ("Abertura grande (f/1.8)",
+             "Permite mais luz e fundo desfocado."),
+            ("Abertura pequena (f/16)",
+             "Menos luz e maior nitidez geral."),
+            ("Profundidade de campo",
+             "Relacionada diretamente à abertura."),
+        ],
+        "dicas": [
+            "Use abertura grande para retratos",
+            "Use abertura pequena para paisagens",
+        ],
+        "conclusao": (
+            "Controlar a abertura melhora o resultado estético das fotos."
+        ),
+    },
+}
+
+# ===============================
+# GERADOR DE CONTEÚDO DINÂMICO
 # ===============================
 def gerar_conteudo_fotografia():
-    print("📝 Gerando conteúdo automático (sem IA)")
+    print("📝 Gerando conteúdo automático (tema dinâmico)")
 
-    titulo = "Erros comuns na fotografia amadora e como evitá-los"
+    tema_key = random.choice(list(TEMAS.keys()))
+    tema = TEMAS[tema_key]
 
-    introducao = (
-        "Muitos iniciantes na fotografia enfrentam dificuldades logo no começo, "
-        "não por falta de equipamento, mas por cometer erros simples que afetam "
-        "diretamente a qualidade das fotos. Conhecer esses erros é o primeiro "
-        "passo para evoluir e obter imagens mais nítidas, bem iluminadas e "
-        "visualmente agradáveis."
-    )
-
-    erros = [
-        (
-            "Usar ISO alto sem necessidade",
-            "Um erro comum é aumentar o ISO mesmo quando há boa iluminação. "
-            "Isso gera ruído desnecessário na imagem, reduzindo a qualidade da foto."
-        ),
-        (
-            "Ignorar a iluminação do ambiente",
-            "Fotografar sem observar a direção, intensidade e qualidade da luz "
-            "resulta em imagens escuras, estouradas ou sem contraste."
-        ),
-        (
-            "Não prestar atenção no foco",
-            "Fotos desfocadas acontecem quando o fotógrafo não confere o ponto de foco, "
-            "principalmente em retratos ou objetos próximos."
-        ),
-        (
-            "Confiar apenas no modo automático",
-            "O modo automático facilita, mas limita o controle criativo. "
-            "Aprender os ajustes básicos ajuda a melhorar significativamente os resultados."
-        ),
-        (
-            "Não estabilizar a câmera",
-            "Segurar a câmera de forma incorreta ou fotografar em baixa velocidade "
-            "sem apoio causa imagens tremidas."
-        ),
-    ]
-
-    dicas = [
-        "Observe a luz antes de fotografar",
-        "Use o ISO mais baixo possível",
-        "Verifique sempre o foco antes do clique",
-        "Experimente os modos semi-manuais da câmera",
-        "Utilize tripé ou apoio em baixa luz",
-    ]
-
-    conclusao = (
-        "Evitar esses erros comuns permite que o fotógrafo iniciante evolua mais rápido "
-        "e aproveite melhor o potencial da câmera. Com prática, atenção aos detalhes "
-        "e ajustes simples, é possível obter fotos muito melhores sem precisar "
-        "de equipamentos caros."
-    )
-
-    # ===============================
-    # MONTAGEM DO TEXTO FINAL
-    # ===============================
     artigo = []
-    artigo.append(introducao)
-    artigo.append("\n\nErros mais comuns na fotografia amadora:\n")
+    artigo.append(tema["introducao"])
+    artigo.append("\n\nPrincipais pontos:\n")
 
-    for titulo_erro, descricao in erros:
-        artigo.append(f"{titulo_erro}\n{descricao}")
+    for titulo_item, descricao in tema["itens"]:
+        artigo.append(f"{titulo_item}\n{descricao}")
 
-    artigo.append("\n\nDicas práticas para evitar esses erros:\n")
+    artigo.append("\n\nDicas práticas:\n")
 
-    for dica in dicas:
+    for dica in tema["dicas"]:
         artigo.append(f"- {dica}")
 
-    artigo.append("\n\n" + conclusao)
+    artigo.append("\n\n" + tema["conclusao"])
 
     artigo_final = "\n\n".join(artigo)
 
-    # ===============================
-    # SALVA OS ARQUIVOS
-    # ===============================
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
-        f.write(titulo)
+        f.write(tema["titulo"])
 
     with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
         f.write(artigo_final)
 
-    print("✅ Conteúdo gerado com sucesso")
-    print(f"📝 Título: {titulo}")
-    print(f"📄 Artigo: {len(artigo_final)} caracteres")
+    print("✅ Conteúdo gerado")
+    print("🎯 Tema:", tema_key)
+    print("📄 Artigo:", len(artigo_final), "caracteres")
 
 # ===============================
 # AUTENTICAÇÃO BLOGGER
@@ -118,7 +145,7 @@ def autenticar():
     return Credentials.from_authorized_user_info(token_info, SCOPES)
 
 # ===============================
-# FORMATA ARTIGO EM HTML
+# FORMATA HTML
 # ===============================
 def formatar_artigo_html(texto):
     paragrafos = texto.split("\n\n")
@@ -137,7 +164,7 @@ def formatar_artigo_html(texto):
     return "\n".join(html)
 
 # ===============================
-# PUBLICA NO BLOGGER
+# PUBLICAÇÃO
 # ===============================
 def publicar_post():
     print("🚀 Publicando no Blogger")
@@ -159,11 +186,9 @@ def publicar_post():
     conteudo = f"""
 <div class="post-body entry-content">
   <h1 style="text-align:center;">{titulo}</h1>
-
   <div style="font-size:18px;line-height:1.6;text-align:justify;">
     {artigo_html}
   </div>
-
   <div style="margin-top:30px;">
     {assinatura}
   </div>
@@ -180,9 +205,9 @@ def publicar_post():
     print("🔗 URL:", response.get("url"))
 
 # ===============================
-# EXECUÇÃO PRINCIPAL
+# EXECUÇÃO
 # ===============================
 if __name__ == "__main__":
-    print("🚀 Iniciando FASE 1 - Fotografia sem IA")
+    print("🚀 FASE 1 / PASSO 1 - Tema dinâmico")
     gerar_conteudo_fotografia()
     publicar_post()
