@@ -2,7 +2,6 @@ import os
 import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
-from openai import OpenAI
 
 # ===============================
 # CONFIGURAÇÕES GERAIS
@@ -13,79 +12,129 @@ CONTENT_DIR = "content"
 
 print("📂 Diretório atual:", os.getcwd())
 
-# Garante que a pasta content exista
 os.makedirs(CONTENT_DIR, exist_ok=True)
 print("📁 Arquivos em content:", os.listdir(CONTENT_DIR))
 
 # ===============================
-# GERA CONTEÚDO COM IA
+# GERADOR DE CONTEÚDO (SEM IA)
 # ===============================
-def gerar_conteudo_ia():
-    print("🤖 Gerando conteúdo com IA...")
+def gerar_conteudo_fotografia():
+    print("📝 Gerando conteúdo automático (sem IA)")
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise Exception("❌ OPENAI_API_KEY não encontrada no ambiente")
+    titulo = "Erros comuns na fotografia amadora e como evitá-los"
 
-    api_key = api_key.strip()
-    client = OpenAI(api_key=api_key)
-
-    prompt = (
-        "Crie um artigo educativo para um blog de fotografia amadora.\n"
-        "Tema: Erros comuns que iniciantes cometem ao fotografar.\n"
-        "Linguagem clara, didática e envolvente.\n\n"
-        "Retorne no seguinte formato:\n"
-        "TÍTULO:\n"
-        "texto do título\n\n"
-        "ARTIGO:\n"
-        "texto do artigo com cerca de 600 palavras"
+    introducao = (
+        "Muitos iniciantes na fotografia enfrentam dificuldades logo no começo, "
+        "não por falta de equipamento, mas por cometer erros simples que afetam "
+        "diretamente a qualidade das fotos. Conhecer esses erros é o primeiro "
+        "passo para evoluir e obter imagens mais nítidas, bem iluminadas e "
+        "visualmente agradáveis."
     )
 
-    resposta = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
+    erros = [
+        (
+            "Usar ISO alto sem necessidade",
+            "Um erro comum é aumentar o ISO mesmo quando há boa iluminação. "
+            "Isso gera ruído desnecessário na imagem, reduzindo a qualidade da foto."
+        ),
+        (
+            "Ignorar a iluminação do ambiente",
+            "Fotografar sem observar a direção, intensidade e qualidade da luz "
+            "resulta em imagens escuras, estouradas ou sem contraste."
+        ),
+        (
+            "Não prestar atenção no foco",
+            "Fotos desfocadas acontecem quando o fotógrafo não confere o ponto de foco, "
+            "principalmente em retratos ou objetos próximos."
+        ),
+        (
+            "Confiar apenas no modo automático",
+            "O modo automático facilita, mas limita o controle criativo. "
+            "Aprender os ajustes básicos ajuda a melhorar significativamente os resultados."
+        ),
+        (
+            "Não estabilizar a câmera",
+            "Segurar a câmera de forma incorreta ou fotografar em baixa velocidade "
+            "sem apoio causa imagens tremidas."
+        ),
+    ]
+
+    dicas = [
+        "Observe a luz antes de fotografar",
+        "Use o ISO mais baixo possível",
+        "Verifique sempre o foco antes do clique",
+        "Experimente os modos semi-manuais da câmera",
+        "Utilize tripé ou apoio em baixa luz",
+    ]
+
+    conclusao = (
+        "Evitar esses erros comuns permite que o fotógrafo iniciante evolua mais rápido "
+        "e aproveite melhor o potencial da câmera. Com prática, atenção aos detalhes "
+        "e ajustes simples, é possível obter fotos muito melhores sem precisar "
+        "de equipamentos caros."
     )
 
-    texto = resposta.choices[0].message.content.strip()
+    # ===============================
+    # MONTAGEM DO TEXTO FINAL
+    # ===============================
+    artigo = []
+    artigo.append(introducao)
+    artigo.append("\n\nErros mais comuns na fotografia amadora:\n")
 
-    if "TÍTULO:" not in texto or "ARTIGO:" not in texto:
-        raise Exception("❌ Resposta da IA fora do formato esperado")
+    for titulo_erro, descricao in erros:
+        artigo.append(f"{titulo_erro}\n{descricao}")
 
-    titulo = texto.split("TÍTULO:")[1].split("ARTIGO:")[0].strip()
-    artigo = texto.split("ARTIGO:")[1].strip()
+    artigo.append("\n\nDicas práticas para evitar esses erros:\n")
 
+    for dica in dicas:
+        artigo.append(f"- {dica}")
+
+    artigo.append("\n\n" + conclusao)
+
+    artigo_final = "\n\n".join(artigo)
+
+    # ===============================
+    # SALVA OS ARQUIVOS
+    # ===============================
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
         f.write(titulo)
 
     with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
-        f.write(artigo)
+        f.write(artigo_final)
 
     print("✅ Conteúdo gerado com sucesso")
-    print(f"📝 Título gerado: {len(titulo)} caracteres")
-    print(f"📄 Artigo gerado: {len(artigo)} caracteres")
+    print(f"📝 Título: {titulo}")
+    print(f"📄 Artigo: {len(artigo_final)} caracteres")
 
 # ===============================
 # AUTENTICAÇÃO BLOGGER
 # ===============================
 def autenticar():
-    print("🔐 Autenticando no Blogger")
-
     blogger_token = os.getenv("BLOGGER_TOKEN")
     if not blogger_token:
-        raise Exception("❌ BLOGGER_TOKEN não encontrado no ambiente")
+        raise Exception("❌ BLOGGER_TOKEN não encontrado")
 
     token_info = json.loads(blogger_token)
-    creds = Credentials.from_authorized_user_info(token_info, SCOPES)
-    return creds
+    return Credentials.from_authorized_user_info(token_info, SCOPES)
 
 # ===============================
 # FORMATA ARTIGO EM HTML
 # ===============================
 def formatar_artigo_html(texto):
     paragrafos = texto.split("\n\n")
-    return "\n".join(
-        f"<p>{p.strip()}</p>" for p in paragrafos if p.strip()
-    )
+    html = []
+
+    for p in paragrafos:
+        p = p.strip()
+        if p.startswith("- "):
+            html.append(f"<li>{p[2:]}</li>")
+        else:
+            html.append(f"<p>{p}</p>")
+
+    if any("<li>" in h for h in html):
+        html = ["<ul>"] + html + ["</ul>"]
+
+    return "\n".join(html)
 
 # ===============================
 # PUBLICA NO BLOGGER
@@ -96,17 +145,14 @@ def publicar_post():
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    with open(f"{CONTENT_DIR}/titulo.txt", "r", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/titulo.txt", encoding="utf-8") as f:
         titulo = f.read().strip()
 
-    with open(f"{CONTENT_DIR}/artigo_pronto.txt", "r", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/artigo_pronto.txt", encoding="utf-8") as f:
         artigo = f.read().strip()
 
-    with open(f"{CONTENT_DIR}/assinatura.html", "r", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/assinatura.html", encoding="utf-8") as f:
         assinatura = f.read()
-
-    if not titulo or not artigo:
-        raise Exception("❌ Título ou artigo vazio. Publicação cancelada.")
 
     artigo_html = formatar_artigo_html(artigo)
 
@@ -126,10 +172,7 @@ def publicar_post():
 
     response = service.posts().insert(
         blogId=BLOG_ID,
-        body={
-            "title": titulo,
-            "content": conteudo
-        },
+        body={"title": titulo, "content": conteudo},
         isDraft=False
     ).execute()
 
@@ -140,6 +183,6 @@ def publicar_post():
 # EXECUÇÃO PRINCIPAL
 # ===============================
 if __name__ == "__main__":
-    print("🚀 Iniciando automação completa")
-    gerar_conteudo_ia()
+    print("🚀 Iniciando FASE 1 - Fotografia sem IA")
+    gerar_conteudo_fotografia()
     publicar_post()
