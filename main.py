@@ -27,9 +27,7 @@ def gerar_conteudo_ia():
     if not api_key:
         raise Exception("❌ OPENAI_API_KEY não encontrada no ambiente")
 
-    # Remove qualquer espaço ou quebra invisível
     api_key = api_key.strip()
-
     client = OpenAI(api_key=api_key)
 
     prompt = (
@@ -50,16 +48,12 @@ def gerar_conteudo_ia():
 
     texto = resposta.choices[0].message.content.strip()
 
-    # ===============================
-    # PARSE SEGURO DO TEXTO
-    # ===============================
     if "TÍTULO:" not in texto or "ARTIGO:" not in texto:
         raise Exception("❌ Resposta da IA fora do formato esperado")
 
     titulo = texto.split("TÍTULO:")[1].split("ARTIGO:")[0].strip()
     artigo = texto.split("ARTIGO:")[1].strip()
 
-    # Salva os arquivos de conteúdo
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
         f.write(titulo)
 
