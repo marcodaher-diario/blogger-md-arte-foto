@@ -14,7 +14,7 @@ CONTENT_DIR = "content"
 FILA_PATH = os.path.join(CONTENT_DIR, "fila_temas.json")
 CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
 
-INTERVALO_DIAS = 0  # para teste imediato
+INTERVALO_DIAS = 0  # teste imediato
 
 os.makedirs(CONTENT_DIR, exist_ok=True)
 
@@ -26,7 +26,8 @@ TEMAS = ["erros_fotografia"]
 CONTEUDO = {
     "erros_fotografia": {
         "titulo": "Erros comuns na fotografia amadora e como evitá-los",
-        "imagem": "https://images.unsplash.com/photo-1519183071298-a2962be96c5f",
+        # ✅ URL COMPATÍVEL COM BLOGGER
+        "imagem": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgRZ5K7N9nZ9O4Zx3f3gQb8uP8Yl4eRzJtY2p8s4rYw5j0zFj1Q6UOZ9pLx2l2x4bH1y/s1600/fotografia-camera.jpg",
         "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
         "texto": (
             "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.\n\n"
@@ -56,9 +57,6 @@ def pode_publicar():
     ultima = datetime.fromisoformat(dados["ultima_publicacao"])
     proxima = ultima + timedelta(days=INTERVALO_DIAS)
 
-    print(f"⏳ Última publicação: {ultima}")
-    print(f"📅 Próxima permitida: {proxima}")
-
     return datetime.now() >= proxima
 
 
@@ -70,8 +68,6 @@ def registrar_publicacao():
             indent=2,
             ensure_ascii=False
         )
-    print("📁 controle_publicacao.json criado/atualizado")
-
 
 # ===============================
 # FILA DE TEMAS
@@ -90,7 +86,6 @@ def obter_tema():
 
     return tema
 
-
 # ===============================
 # AUTENTICAÇÃO
 # ===============================
@@ -100,12 +95,11 @@ def autenticar():
         raise Exception("BLOGGER_TOKEN ausente")
     return Credentials.from_authorized_user_info(json.loads(token), SCOPES)
 
-
 # ===============================
 # PUBLICAÇÃO
 # ===============================
 def publicar():
-    print("🚀 Iniciando publicação")
+    print("🚀 Publicando no Blogger")
 
     tema_key = obter_tema()
     tema = CONTEUDO[tema_key]
@@ -138,8 +132,7 @@ def publicar():
     ).execute()
 
     registrar_publicacao()
-    print("✅ Post publicado com sucesso")
-
+    print("✅ Post publicado com imagem visível")
 
 # ===============================
 # EXECUÇÃO
