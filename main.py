@@ -14,7 +14,7 @@ CONTENT_DIR = "content"
 FILA_PATH = os.path.join(CONTENT_DIR, "fila_temas.json")
 CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
 
-INTERVALO_DIAS = 0  # para teste
+INTERVALO_DIAS = 0  # para teste imediato
 
 os.makedirs(CONTENT_DIR, exist_ok=True)
 
@@ -28,18 +28,17 @@ CONTEUDO = {
         "titulo": "Erros comuns na fotografia amadora e como evitá-los",
         "imagem": "https://images.unsplash.com/photo-1519183071298-a2962be96c5f",
         "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
-        "texto": """Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.
-
-ISO alto sem necessidade gera ruído e perda de qualidade.
-Ignorar a luz resulta em fotos mal iluminadas.
-Fotos sem foco comprometem o resultado final.
-
-Dicas práticas:
-Observe a iluminação.
-Use ISO baixo sempre que possível.
-Confira o foco antes do clique.
-
-Evitar esses erros ajuda a evoluir rapidamente na fotografia."""
+        "texto": (
+            "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.\n\n"
+            "ISO alto sem necessidade gera ruído e perda de qualidade.\n"
+            "Ignorar a luz resulta em fotos mal iluminadas.\n"
+            "Fotos sem foco comprometem o resultado final.\n\n"
+            "Dicas práticas:\n"
+            "Observe a iluminação.\n"
+            "Use ISO baixo sempre que possível.\n"
+            "Confira o foco antes do clique.\n\n"
+            "Evitar esses erros ajuda a evoluir rapidamente na fotografia."
+        )
     }
 }
 
@@ -62,6 +61,7 @@ def pode_publicar():
 
     return datetime.now() >= proxima
 
+
 def registrar_publicacao():
     with open(CONTROLE_PATH, "w", encoding="utf-8") as f:
         json.dump(
@@ -71,6 +71,7 @@ def registrar_publicacao():
             ensure_ascii=False
         )
     print("📁 controle_publicacao.json criado/atualizado")
+
 
 # ===============================
 # FILA DE TEMAS
@@ -83,10 +84,12 @@ def obter_tema():
             fila = json.load(f)
 
     tema = fila.pop(0)
+
     with open(FILA_PATH, "w", encoding="utf-8") as f:
         json.dump(fila or TEMAS.copy(), f, indent=2, ensure_ascii=False)
 
     return tema
+
 
 # ===============================
 # AUTENTICAÇÃO
@@ -96,6 +99,7 @@ def autenticar():
     if not token:
         raise Exception("BLOGGER_TOKEN ausente")
     return Credentials.from_authorized_user_info(json.loads(token), SCOPES)
+
 
 # ===============================
 # PUBLICAÇÃO
@@ -109,6 +113,39 @@ def publicar():
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    html = f"""
-<div class="post-body entry-content">
-<h1 style="
+    texto_html = tema["texto"].replace("\n", "<br>")
+
+    html = (
+        '<div class="post-body entry-content">'
+        f'<h1 style="text-align:center;">{tema["titulo"]}</h1>'
+        '<div style="text-align:center;margin:20px 0;">'
+        f'<img src="{tema["imagem"]}" style="max-width:680px;width:100%;" alt="{tema["titulo"]}">'
+        '</div>'
+        '<div style="font-size:18px;line-height:1.6;text-align:justify;">'
+        f'{texto_html}'
+        '</div>'
+        '</div>'
+    )
+
+    service.posts().insert(
+        blogId=BLOG_ID,
+        body={
+            "title": tema["titulo"],
+            "content": html,
+            "labels": tema["labels"]
+        },
+        isDraft=False
+    ).execute()
+
+    registrar_publicacao()
+    print("✅ Post publicado com sucesso")
+
+
+# ===============================
+# EXECUÇÃO
+# ===============================
+if __name__ == "__main__":
+    if pode_publicar():
+        publicar()
+    else:
+        print("⏹️ Execução finalizada sem publicação")
