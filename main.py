@@ -1,6 +1,6 @@
 import os
 import json
-import random
+from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -11,116 +11,169 @@ SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
 CONTENT_DIR = "content"
 
+FILA_PATH = os.path.join(CONTENT_DIR, "fila_temas.json")
+CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
+
+INTERVALO_DIAS = 3  # postar a cada 3 dias
+
 print("📂 Diretório atual:", os.getcwd())
 os.makedirs(CONTENT_DIR, exist_ok=True)
 print("📁 Arquivos em content:", os.listdir(CONTENT_DIR))
 
 # ===============================
-# TEMAS DINÂMICOS DE FOTOGRAFIA
+# TEMAS + IMAGENS + LABELS
 # ===============================
-TEMAS = {
+TEMAS = [
+    "erros_fotografia",
+    "iso",
+    "abertura",
+    "velocidade",
+    "composicao",
+]
+
+CONTEUDO = {
     "erros_fotografia": {
         "titulo": "Erros comuns na fotografia amadora e como evitá-los",
-        "introducao": (
-            "Muitos iniciantes na fotografia enfrentam dificuldades logo no começo, "
-            "não por falta de equipamento, mas por cometer erros simples que afetam "
-            "diretamente a qualidade das fotos."
-        ),
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Photographer_with_camera.jpg",
+        "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
+        "introducao": "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.",
         "itens": [
-            ("Usar ISO alto sem necessidade",
-             "Aumentar o ISO sem necessidade gera ruído e reduz a qualidade da imagem."),
-            ("Ignorar a iluminação",
-             "Não observar a luz resulta em fotos escuras, estouradas ou sem contraste."),
-            ("Fotos sem foco",
-             "A falta de atenção ao foco é uma das principais causas de imagens ruins."),
-            ("Confiar apenas no modo automático",
-             "O modo automático limita o controle criativo do fotógrafo."),
-            ("Não estabilizar a câmera",
-             "Baixa velocidade sem apoio causa fotos tremidas."),
+            ("ISO alto sem necessidade", "Gera ruído e perda de qualidade."),
+            ("Ignorar a luz", "Resulta em fotos mal iluminadas."),
+            ("Fotos sem foco", "Comprometem o resultado final."),
         ],
         "dicas": [
-            "Observe a luz antes de fotografar",
-            "Use o ISO mais baixo possível",
+            "Observe a iluminação",
+            "Use ISO baixo sempre que possível",
             "Confira o foco antes do clique",
-            "Experimente modos semi-manuais",
-            "Use tripé em pouca luz",
         ],
-        "conclusao": (
-            "Evitar esses erros ajuda o fotógrafo iniciante a evoluir rapidamente e "
-            "obter imagens com melhor qualidade."
-        ),
+        "conclusao": "Evitar esses erros ajuda a evoluir rapidamente na fotografia.",
     },
 
     "iso": {
         "titulo": "O que é ISO na fotografia e como usar corretamente",
-        "introducao": (
-            "O ISO é um dos principais ajustes da câmera e influencia diretamente "
-            "na luminosidade e na qualidade da imagem."
-        ),
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Camera_ISO_settings.jpg",
+        "labels": ["Fotografia", "ISO", "Configurações da Câmera"],
+        "introducao": "O ISO controla a sensibilidade do sensor à luz.",
         "itens": [
-            ("ISO baixo",
-             "Ideal para ambientes bem iluminados, garantindo imagens mais limpas."),
-            ("ISO alto",
-             "Usado em pouca luz, mas pode gerar ruído."),
-            ("Ruído digital",
-             "Aumenta conforme o ISO sobe."),
+            ("ISO baixo", "Menos ruído e melhor qualidade."),
+            ("ISO alto", "Mais luz, porém mais ruído."),
         ],
         "dicas": [
-            "Use ISO baixo sempre que possível",
-            "Aumente o ISO apenas quando faltar luz",
-            "Prefira boa iluminação ao invés de ISO alto",
+            "Use ISO baixo em ambientes claros",
+            "Aumente ISO apenas quando necessário",
         ],
-        "conclusao": (
-            "Entender o ISO permite fotografar melhor em diferentes condições de luz."
-        ),
+        "conclusao": "Entender o ISO melhora fotos em diferentes condições de luz.",
     },
 
     "abertura": {
         "titulo": "Abertura do diafragma explicada para iniciantes",
-        "introducao": (
-            "A abertura do diafragma controla a entrada de luz e a profundidade de campo."
-        ),
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Aperture_fstop_diagram.svg",
+        "labels": ["Fotografia", "Abertura", "Diafragma"],
+        "introducao": "A abertura controla a entrada de luz e a profundidade de campo.",
         "itens": [
-            ("Abertura grande (f/1.8)",
-             "Permite mais luz e fundo desfocado."),
-            ("Abertura pequena (f/16)",
-             "Menos luz e maior nitidez geral."),
-            ("Profundidade de campo",
-             "Relacionada diretamente à abertura."),
+            ("Abertura grande", "Mais luz e fundo desfocado."),
+            ("Abertura pequena", "Menos luz e maior nitidez."),
         ],
         "dicas": [
             "Use abertura grande para retratos",
             "Use abertura pequena para paisagens",
         ],
-        "conclusao": (
-            "Controlar a abertura melhora o resultado estético das fotos."
-        ),
+        "conclusao": "Dominar a abertura melhora o controle criativo.",
+    },
+
+    "velocidade": {
+        "titulo": "Velocidade do obturador e fotos em movimento",
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Long_exposure_photography.jpg",
+        "labels": ["Fotografia", "Velocidade do Obturador", "Movimento"],
+        "introducao": "A velocidade do obturador controla o tempo de exposição.",
+        "itens": [
+            ("Velocidade alta", "Congela o movimento."),
+            ("Velocidade baixa", "Cria efeito de movimento."),
+        ],
+        "dicas": [
+            "Use velocidade alta para esportes",
+            "Use tripé em velocidades baixas",
+        ],
+        "conclusao": "Ajustar a velocidade ajuda a capturar o momento certo.",
+    },
+
+    "composicao": {
+        "titulo": "Composição fotográfica: regras básicas para iniciantes",
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Rule_of_thirds_photo.jpg",
+        "labels": ["Fotografia", "Composição", "Dicas de Fotografia"],
+        "introducao": "A composição organiza os elementos dentro da foto.",
+        "itens": [
+            ("Regra dos terços", "Equilibra a imagem."),
+            ("Linhas guia", "Conduzem o olhar."),
+        ],
+        "dicas": [
+            "Ative a grade da câmera",
+            "Observe o enquadramento",
+        ],
+        "conclusao": "Boa composição torna fotos mais interessantes.",
     },
 }
 
 # ===============================
-# GERADOR DE CONTEÚDO DINÂMICO
+# CONTROLE DE INTERVALO
 # ===============================
-def gerar_conteudo_fotografia():
-    print("📝 Gerando conteúdo automático (tema dinâmico)")
+def pode_publicar():
+    if not os.path.exists(CONTROLE_PATH):
+        return True
 
-    tema_key = random.choice(list(TEMAS.keys()))
-    tema = TEMAS[tema_key]
+    with open(CONTROLE_PATH, encoding="utf-8") as f:
+        dados = json.load(f)
 
-    artigo = []
-    artigo.append(tema["introducao"])
-    artigo.append("\n\nPrincipais pontos:\n")
+    ultima = datetime.fromisoformat(dados["ultima_publicacao"])
+    return datetime.now() >= ultima + timedelta(days=INTERVALO_DIAS)
 
-    for titulo_item, descricao in tema["itens"]:
-        artigo.append(f"{titulo_item}\n{descricao}")
+def registrar_publicacao():
+    with open(CONTROLE_PATH, "w", encoding="utf-8") as f:
+        json.dump(
+            {"ultima_publicacao": datetime.now().isoformat()},
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+
+# ===============================
+# FILA DE TEMAS
+# ===============================
+def obter_proximo_tema():
+    if not os.path.exists(FILA_PATH):
+        fila = TEMAS.copy()
+    else:
+        with open(FILA_PATH, encoding="utf-8") as f:
+            fila = json.load(f)
+
+    if not fila:
+        fila = TEMAS.copy()
+
+    tema = fila.pop(0)
+
+    with open(FILA_PATH, "w", encoding="utf-8") as f:
+        json.dump(fila, f, ensure_ascii=False, indent=2)
+
+    return tema
+
+# ===============================
+# GERADOR DE CONTEÚDO
+# ===============================
+def gerar_conteudo():
+    tema_key = obter_proximo_tema()
+    tema = CONTEUDO[tema_key]
+
+    artigo = [tema["introducao"], "\n\nPrincipais pontos:\n"]
+
+    for t, d in tema["itens"]:
+        artigo.append(f"{t}\n{d}")
 
     artigo.append("\n\nDicas práticas:\n")
-
     for dica in tema["dicas"]:
         artigo.append(f"- {dica}")
 
     artigo.append("\n\n" + tema["conclusao"])
-
     artigo_final = "\n\n".join(artigo)
 
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
@@ -129,85 +182,77 @@ def gerar_conteudo_fotografia():
     with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
         f.write(artigo_final)
 
-    print("✅ Conteúdo gerado")
-    print("🎯 Tema:", tema_key)
-    print("📄 Artigo:", len(artigo_final), "caracteres")
+    with open(f"{CONTENT_DIR}/imagem.txt", "w", encoding="utf-8") as f:
+        f.write(tema["imagem"])
+
+    with open(f"{CONTENT_DIR}/labels.json", "w", encoding="utf-8") as f:
+        json.dump(tema["labels"], f, ensure_ascii=False, indent=2)
+
+    print("🎯 Tema publicado:", tema_key)
 
 # ===============================
-# AUTENTICAÇÃO BLOGGER
+# BLOGGER
 # ===============================
 def autenticar():
-    blogger_token = os.getenv("BLOGGER_TOKEN")
-    if not blogger_token:
-        raise Exception("❌ BLOGGER_TOKEN não encontrado")
-
-    token_info = json.loads(blogger_token)
+    token_info = json.loads(os.environ["BLOGGER_TOKEN"])
     return Credentials.from_authorized_user_info(token_info, SCOPES)
 
-# ===============================
-# FORMATA HTML
-# ===============================
-def formatar_artigo_html(texto):
-    paragrafos = texto.split("\n\n")
+def formatar_html(texto):
+    partes = texto.split("\n\n")
     html = []
-
-    for p in paragrafos:
-        p = p.strip()
+    for p in partes:
         if p.startswith("- "):
             html.append(f"<li>{p[2:]}</li>")
         else:
             html.append(f"<p>{p}</p>")
-
     if any("<li>" in h for h in html):
         html = ["<ul>"] + html + ["</ul>"]
-
     return "\n".join(html)
 
-# ===============================
-# PUBLICAÇÃO
-# ===============================
-def publicar_post():
-    print("🚀 Publicando no Blogger")
-
+def publicar():
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    with open(f"{CONTENT_DIR}/titulo.txt", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/titulo.txt") as f:
         titulo = f.read().strip()
-
-    with open(f"{CONTENT_DIR}/artigo_pronto.txt", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/artigo_pronto.txt") as f:
         artigo = f.read().strip()
-
-    with open(f"{CONTENT_DIR}/assinatura.html", encoding="utf-8") as f:
+    with open(f"{CONTENT_DIR}/imagem.txt") as f:
+        imagem = f.read().strip()
+    with open(f"{CONTENT_DIR}/labels.json") as f:
+        labels = json.load(f)
+    with open(f"{CONTENT_DIR}/assinatura.html") as f:
         assinatura = f.read()
 
-    artigo_html = formatar_artigo_html(artigo)
-
-    conteudo = f"""
+    html = f"""
 <div class="post-body entry-content">
-  <h1 style="text-align:center;">{titulo}</h1>
-  <div style="font-size:18px;line-height:1.6;text-align:justify;">
-    {artigo_html}
-  </div>
-  <div style="margin-top:30px;">
-    {assinatura}
-  </div>
+<h1 style="text-align:center;">{titulo}</h1>
+<div style="text-align:center;margin:20px 0;">
+<img src="{imagem}" style="max-width:680px;width:100%;" alt="{titulo}">
+</div>
+<div style="font-size:18px;line-height:1.6;text-align:justify;">
+{formatar_html(artigo)}
+</div>
+<div style="margin-top:30px;">{assinatura}</div>
 </div>
 """
 
-    response = service.posts().insert(
+    service.posts().insert(
         blogId=BLOG_ID,
-        body={"title": titulo, "content": conteudo},
+        body={"title": titulo, "content": html, "labels": labels},
         isDraft=False
     ).execute()
 
+    registrar_publicacao()
     print("✅ Post publicado com sucesso")
-    print("🔗 URL:", response.get("url"))
 
 # ===============================
 # EXECUÇÃO
 # ===============================
 if __name__ == "__main__":
-    print("🚀 FASE 1 / PASSO 1 - Tema dinâmico")
-    gerar_conteudo_fotografia()
-    publicar_post()
+    print("🚀 FASE 1 / PASSO 5 - Publicação a cada 3 dias")
+    if pode_publicar():
+        gerar_conteudo()
+        publicar()
+    else:
+        print("⏳ Ainda não é dia de publicação")
