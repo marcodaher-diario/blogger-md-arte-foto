@@ -1,8 +1,11 @@
 import os
 import json
+import tempfile
+import requests
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaFileUpload
 
 # ===============================
 # CONFIGURAÇÕES
@@ -16,97 +19,31 @@ CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
 
 INTERVALO_DIAS = 3
 
-print("📂 Diretório atual:", os.getcwd())
 os.makedirs(CONTENT_DIR, exist_ok=True)
-print("📁 Arquivos em content:", os.listdir(CONTENT_DIR))
 
 # ===============================
-# TEMAS / CONTEÚDO
+# TEMAS
 # ===============================
-TEMAS = ["erros_fotografia", "iso", "abertura", "velocidade", "composicao"]
+TEMAS = ["erros_fotografia"]
 
 CONTEUDO = {
     "erros_fotografia": {
         "titulo": "Erros comuns na fotografia amadora e como evitá-los",
-        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Photographer_with_camera.jpg",
+        "imagem": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Photographer_with_camera.jpg",
         "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
-        "introducao": "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.",
-        "itens": [
-            ("ISO alto sem necessidade", "Gera ruído e perda de qualidade."),
-            ("Ignorar a luz", "Resulta em fotos mal iluminadas."),
-            ("Fotos sem foco", "Comprometem o resultado final."),
-        ],
-        "dicas": [
-            "Observe a iluminação",
-            "Use ISO baixo sempre que possível",
-            "Confira o foco antes do clique",
-        ],
-        "conclusao": "Evitar esses erros ajuda a evoluir rapidamente na fotografia.",
-    },
+        "texto": """Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.
 
-    "iso": {
-        "titulo": "O que é ISO na fotografia e como usar corretamente",
-        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/ISO_settings_on_camera.jpg",
-        "labels": ["Fotografia", "ISO"],
-        "introducao": "O ISO controla a sensibilidade do sensor à luz.",
-        "itens": [
-            ("ISO baixo", "Menos ruído e melhor qualidade."),
-            ("ISO alto", "Mais luz, porém mais ruído."),
-        ],
-        "dicas": [
-            "Use ISO baixo em ambientes claros",
-            "Aumente ISO apenas quando necessário",
-        ],
-        "conclusao": "Entender o ISO melhora fotos em diferentes condições de luz.",
-    },
+ISO alto sem necessidade gera ruído e perda de qualidade.
+Ignorar a luz resulta em fotos mal iluminadas.
+Fotos sem foco comprometem o resultado final.
 
-    "abertura": {
-        "titulo": "Abertura do diafragma explicada para iniciantes",
-        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Aperture_diagram.jpg",
-        "labels": ["Fotografia", "Abertura", "Diafragma"],
-        "introducao": "A abertura controla a entrada de luz e a profundidade de campo.",
-        "itens": [
-            ("Abertura grande", "Mais luz e fundo desfocado."),
-            ("Abertura pequena", "Menos luz e maior nitidez."),
-        ],
-        "dicas": [
-            "Use abertura grande para retratos",
-            "Use abertura pequena para paisagens",
-        ],
-        "conclusao": "Dominar a abertura melhora o controle criativo.",
-    },
+Dicas práticas:
+Observe a iluminação.
+Use ISO baixo sempre que possível.
+Confira o foco antes do clique.
 
-    "velocidade": {
-        "titulo": "Velocidade do obturador e fotos em movimento",
-        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_exposure_waterfall.jpg",
-        "labels": ["Fotografia", "Velocidade do Obturador"],
-        "introducao": "A velocidade do obturador controla o tempo de exposição.",
-        "itens": [
-            ("Velocidade alta", "Congela o movimento."),
-            ("Velocidade baixa", "Cria efeito de movimento."),
-        ],
-        "dicas": [
-            "Use velocidade alta para esportes",
-            "Use tripé em velocidades baixas",
-        ],
-        "conclusao": "Ajustar a velocidade ajuda a capturar o momento certo.",
-    },
-
-    "composicao": {
-        "titulo": "Composição fotográfica: regras básicas para iniciantes",
-        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Rule_of_thirds_example.jpg",
-        "labels": ["Fotografia", "Composição"],
-        "introducao": "A composição organiza os elementos dentro da foto.",
-        "itens": [
-            ("Regra dos terços", "Equilibra a imagem."),
-            ("Linhas guia", "Conduzem o olhar."),
-        ],
-        "dicas": [
-            "Ative a grade da câmera",
-            "Observe o enquadramento",
-        ],
-        "conclusao": "Boa composição torna fotos mais interessantes.",
-    },
+Evitar esses erros ajuda a evoluir rapidamente na fotografia."""
+    }
 }
 
 # ===============================
@@ -115,108 +52,97 @@ CONTEUDO = {
 def pode_publicar():
     if not os.path.exists(CONTROLE_PATH):
         return True
-    with open(CONTROLE_PATH, encoding="utf-8") as f:
-        dados = json.load(f)
+    dados = json.load(open(CONTROLE_PATH))
     ultima = datetime.fromisoformat(dados["ultima_publicacao"])
     return datetime.now() >= ultima + timedelta(days=INTERVALO_DIAS)
 
 def registrar_publicacao():
-    with open(CONTROLE_PATH, "w", encoding="utf-8") as f:
-        json.dump({"ultima_publicacao": datetime.now().isoformat()}, f)
+    json.dump(
+        {"ultima_publicacao": datetime.now().isoformat()},
+        open(CONTROLE_PATH, "w"),
+        indent=2
+    )
 
 # ===============================
-# FILA DE TEMAS
+# FILA
 # ===============================
-def obter_proximo_tema():
+def obter_tema():
     if not os.path.exists(FILA_PATH):
         fila = TEMAS.copy()
     else:
-        with open(FILA_PATH, encoding="utf-8") as f:
-            fila = json.load(f)
-    if not fila:
-        fila = TEMAS.copy()
+        fila = json.load(open(FILA_PATH))
+
     tema = fila.pop(0)
-    with open(FILA_PATH, "w", encoding="utf-8") as f:
-        json.dump(fila, f)
+    json.dump(fila or TEMAS.copy(), open(FILA_PATH, "w"), indent=2)
     return tema
 
 # ===============================
 # AUTENTICAÇÃO
 # ===============================
 def autenticar():
-    raw = os.getenv("BLOGGER_TOKEN", "").strip()
-    if not raw:
-        raise Exception("BLOGGER_TOKEN vazio")
-    token_info = json.loads(raw)
-    return Credentials.from_authorized_user_info(token_info, SCOPES)
+    token = os.getenv("BLOGGER_TOKEN")
+    if not token:
+        raise Exception("BLOGGER_TOKEN ausente")
+    return Credentials.from_authorized_user_info(json.loads(token), SCOPES)
 
 # ===============================
-# GERAR CONTEÚDO
+# UPLOAD DE IMAGEM PARA BLOGGER
 # ===============================
-def gerar_conteudo():
-    tema_key = obter_proximo_tema()
-    tema = CONTEUDO[tema_key]
+def upload_imagem(service, image_url):
+    response = requests.get(image_url, timeout=20)
+    response.raise_for_status()
 
-    artigo = [tema["introducao"], "\n\nPrincipais pontos:\n"]
-    for t, d in tema["itens"]:
-        artigo.append(f"{t}\n{d}")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+        tmp.write(response.content)
+        tmp_path = tmp.name
 
-    artigo.append("\n\nDicas práticas:\n")
-    for dica in tema["dicas"]:
-        artigo.append(f"- {dica}")
+    media = MediaFileUpload(tmp_path, mimetype="image/jpeg")
+    imagem = service.posts().insert(
+        blogId=BLOG_ID,
+        body={"title": "Imagem automática"},
+        media_body=media
+    ).execute()
 
-    artigo.append("\n\n" + tema["conclusao"])
+    os.remove(tmp_path)
 
-    with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
-        f.write(tema["titulo"])
-    with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
-        f.write("\n\n".join(artigo))
-    with open(f"{CONTENT_DIR}/imagem.txt", "w", encoding="utf-8") as f:
-        f.write(tema["imagem"])
-    with open(f"{CONTENT_DIR}/labels.json", "w", encoding="utf-8") as f:
-        json.dump(tema["labels"], f)
+    return imagem["url"]
 
 # ===============================
 # PUBLICAÇÃO
 # ===============================
 def publicar():
+    tema_key = obter_tema()
+    tema = CONTEUDO[tema_key]
+
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    titulo = open(f"{CONTENT_DIR}/titulo.txt").read()
-    artigo = open(f"{CONTENT_DIR}/artigo_pronto.txt").read()
-    imagem = open(f"{CONTENT_DIR}/imagem.txt").read()
-    labels = json.load(open(f"{CONTENT_DIR}/labels.json"))
-    assinatura = open(f"{CONTENT_DIR}/assinatura.html").read()
+    print("⬆️ Enviando imagem para o Blogger...")
+    imagem_url = upload_imagem(service, tema["imagem"])
 
     html = f"""
 <div class="post-body entry-content">
-<h1 style="text-align:center;">{titulo}</h1>
+<h1 style="text-align:center;">{tema["titulo"]}</h1>
 <div style="text-align:center;margin:20px 0;">
-<img src="{imagem}" style="max-width:680px;width:100%;" alt="{titulo}">
+<img src="{imagem_url}" style="max-width:680px;width:100%;">
 </div>
 <div style="font-size:18px;line-height:1.6;text-align:justify;">
-{artigo.replace(chr(10), '<br>')}
+{tema["texto"].replace(chr(10), '<br>')}
 </div>
-<div style="margin-top:30px;">{assinatura}</div>
 </div>
 """
 
     service.posts().insert(
         blogId=BLOG_ID,
-        body={"title": titulo, "content": html, "labels": labels},
+        body={
+            "title": tema["titulo"],
+            "content": html,
+            "labels": tema["labels"]
+        },
         isDraft=False
     ).execute()
 
     registrar_publicacao()
-    print("✅ Post publicado com imagem")
+    print("✅ Post publicado com imagem hospedada no Blogger")
 
-# ===============================
-# EXECUÇÃO
-# ===============================
-if __name__ == "__main__":
-    if pode_publicar():
-        gerar_conteudo()
-        publicar()
-    else:
-        print("⏳ Ainda não é dia de publicação")
+# ======================
