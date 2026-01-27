@@ -28,7 +28,7 @@ TEMAS = ["erros_fotografia", "iso", "abertura", "velocidade", "composicao"]
 CONTEUDO = {
     "erros_fotografia": {
         "titulo": "Erros comuns na fotografia amadora e como evitá-los",
-        "imagem": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Photographer_with_camera.jpg",
+        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Photographer_with_camera.jpg",
         "labels": ["Fotografia", "Iniciantes", "Erros Comuns"],
         "introducao": "Muitos iniciantes cometem erros simples que afetam diretamente a qualidade das fotos.",
         "itens": [
@@ -43,9 +43,10 @@ CONTEUDO = {
         ],
         "conclusao": "Evitar esses erros ajuda a evoluir rapidamente na fotografia.",
     },
+
     "iso": {
         "titulo": "O que é ISO na fotografia e como usar corretamente",
-        "imagem": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Camera_ISO_settings.jpg",
+        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/ISO_settings_on_camera.jpg",
         "labels": ["Fotografia", "ISO"],
         "introducao": "O ISO controla a sensibilidade do sensor à luz.",
         "itens": [
@@ -57,6 +58,54 @@ CONTEUDO = {
             "Aumente ISO apenas quando necessário",
         ],
         "conclusao": "Entender o ISO melhora fotos em diferentes condições de luz.",
+    },
+
+    "abertura": {
+        "titulo": "Abertura do diafragma explicada para iniciantes",
+        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Aperture_diagram.jpg",
+        "labels": ["Fotografia", "Abertura", "Diafragma"],
+        "introducao": "A abertura controla a entrada de luz e a profundidade de campo.",
+        "itens": [
+            ("Abertura grande", "Mais luz e fundo desfocado."),
+            ("Abertura pequena", "Menos luz e maior nitidez."),
+        ],
+        "dicas": [
+            "Use abertura grande para retratos",
+            "Use abertura pequena para paisagens",
+        ],
+        "conclusao": "Dominar a abertura melhora o controle criativo.",
+    },
+
+    "velocidade": {
+        "titulo": "Velocidade do obturador e fotos em movimento",
+        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_exposure_waterfall.jpg",
+        "labels": ["Fotografia", "Velocidade do Obturador"],
+        "introducao": "A velocidade do obturador controla o tempo de exposição.",
+        "itens": [
+            ("Velocidade alta", "Congela o movimento."),
+            ("Velocidade baixa", "Cria efeito de movimento."),
+        ],
+        "dicas": [
+            "Use velocidade alta para esportes",
+            "Use tripé em velocidades baixas",
+        ],
+        "conclusao": "Ajustar a velocidade ajuda a capturar o momento certo.",
+    },
+
+    "composicao": {
+        "titulo": "Composição fotográfica: regras básicas para iniciantes",
+        "imagem": "https://commons.wikimedia.org/wiki/Special:FilePath/Rule_of_thirds_example.jpg",
+        "labels": ["Fotografia", "Composição"],
+        "introducao": "A composição organiza os elementos dentro da foto.",
+        "itens": [
+            ("Regra dos terços", "Equilibra a imagem."),
+            ("Linhas guia", "Conduzem o olhar."),
+        ],
+        "dicas": [
+            "Ative a grade da câmera",
+            "Observe o enquadramento",
+        ],
+        "conclusao": "Boa composição torna fotos mais interessantes.",
     },
 }
 
@@ -73,12 +122,7 @@ def pode_publicar():
 
 def registrar_publicacao():
     with open(CONTROLE_PATH, "w", encoding="utf-8") as f:
-        json.dump(
-            {"ultima_publicacao": datetime.now().isoformat()},
-            f,
-            ensure_ascii=False,
-            indent=2
-        )
+        json.dump({"ultima_publicacao": datetime.now().isoformat()}, f)
 
 # ===============================
 # FILA DE TEMAS
@@ -93,26 +137,17 @@ def obter_proximo_tema():
         fila = TEMAS.copy()
     tema = fila.pop(0)
     with open(FILA_PATH, "w", encoding="utf-8") as f:
-        json.dump(fila, f, ensure_ascii=False, indent=2)
+        json.dump(fila, f)
     return tema
 
 # ===============================
-# AUTENTICAÇÃO BLINDADA
+# AUTENTICAÇÃO
 # ===============================
 def autenticar():
     raw = os.getenv("BLOGGER_TOKEN", "").strip()
-
     if not raw:
-        raise Exception("❌ BLOGGER_TOKEN está vazio no GitHub Secrets")
-
-    try:
-        token_info = json.loads(raw)
-    except json.JSONDecodeError:
-        raise Exception(
-            "❌ BLOGGER_TOKEN inválido. "
-            "Cole o conteúdo do token.json em UMA ÚNICA LINHA no GitHub Secrets."
-        )
-
+        raise Exception("BLOGGER_TOKEN vazio")
+    token_info = json.loads(raw)
     return Credentials.from_authorized_user_info(token_info, SCOPES)
 
 # ===============================
@@ -131,18 +166,15 @@ def gerar_conteudo():
         artigo.append(f"- {dica}")
 
     artigo.append("\n\n" + tema["conclusao"])
-    artigo_final = "\n\n".join(artigo)
 
     with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
         f.write(tema["titulo"])
     with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
-        f.write(artigo_final)
+        f.write("\n\n".join(artigo))
     with open(f"{CONTENT_DIR}/imagem.txt", "w", encoding="utf-8") as f:
         f.write(tema["imagem"])
     with open(f"{CONTENT_DIR}/labels.json", "w", encoding="utf-8") as f:
-        json.dump(tema["labels"], f, ensure_ascii=False)
-
-    print("🎯 Tema preparado:", tema_key)
+        json.dump(tema["labels"], f)
 
 # ===============================
 # PUBLICAÇÃO
@@ -151,16 +183,11 @@ def publicar():
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    with open(f"{CONTENT_DIR}/titulo.txt") as f:
-        titulo = f.read()
-    with open(f"{CONTENT_DIR}/artigo_pronto.txt") as f:
-        artigo = f.read()
-    with open(f"{CONTENT_DIR}/imagem.txt") as f:
-        imagem = f.read()
-    with open(f"{CONTENT_DIR}/labels.json") as f:
-        labels = json.load(f)
-    with open(f"{CONTENT_DIR}/assinatura.html") as f:
-        assinatura = f.read()
+    titulo = open(f"{CONTENT_DIR}/titulo.txt").read()
+    artigo = open(f"{CONTENT_DIR}/artigo_pronto.txt").read()
+    imagem = open(f"{CONTENT_DIR}/imagem.txt").read()
+    labels = json.load(open(f"{CONTENT_DIR}/labels.json"))
+    assinatura = open(f"{CONTENT_DIR}/assinatura.html").read()
 
     html = f"""
 <div class="post-body entry-content">
@@ -169,7 +196,7 @@ def publicar():
 <img src="{imagem}" style="max-width:680px;width:100%;" alt="{titulo}">
 </div>
 <div style="font-size:18px;line-height:1.6;text-align:justify;">
-{artigo}
+{artigo.replace(chr(10), '<br>')}
 </div>
 <div style="margin-top:30px;">{assinatura}</div>
 </div>
@@ -182,13 +209,12 @@ def publicar():
     ).execute()
 
     registrar_publicacao()
-    print("✅ Post publicado com sucesso")
+    print("✅ Post publicado com imagem")
 
 # ===============================
 # EXECUÇÃO
 # ===============================
 if __name__ == "__main__":
-    print("🚀 Publicação a cada 3 dias")
     if pode_publicar():
         gerar_conteudo()
         publicar()
