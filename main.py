@@ -17,7 +17,7 @@ CONTENT_DIR = "content"
 FILA_PATH = os.path.join(CONTENT_DIR, "fila_temas.json")
 CONTROLE_PATH = os.path.join(CONTENT_DIR, "controle_publicacao.json")
 
-INTERVALO_DIAS = 3
+INTERVALO_DIAS = 0
 
 os.makedirs(CONTENT_DIR, exist_ok=True)
 
