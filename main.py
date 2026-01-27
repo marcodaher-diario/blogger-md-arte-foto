@@ -3,40 +3,40 @@ import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-
 # ===============================
 # CONFIGURAÇÕES
 # ===============================
-print("Diretório atual:", os.getcwd())
-print("Arquivos em content:", os.listdir("content"))
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
+
+print("📂 Diretório atual:", os.getcwd())
+print("📁 Arquivos em content:", os.listdir("content"))
 
 # ===============================
 # AUTENTICAÇÃO
 # ===============================
 def autenticar():
-    # 🔹 GITHUB ACTIONS
+    # Execução no GitHub Actions
     if os.getenv("GITHUB_ACTIONS") == "true":
         print("🔐 Autenticando via BLOGGER_TOKEN (GitHub Secrets)")
-
         token_info = json.loads(os.environ["BLOGGER_TOKEN"])
-        creds = Credentials.from_authorized_user_info(token_info, SCOPES)
-        return creds
+        return Credentials.from_authorized_user_info(token_info, SCOPES)
 
-    # 🔹 EXECUÇÃO LOCAL
+    # Execução local
     print("💻 Autenticando localmente via token.json")
     return Credentials.from_authorized_user_file("token.json", SCOPES)
 
 # ===============================
-# FORMATA TEXTO EM PARÁGRAFOS
+# FORMATA TEXTO EM PARÁGRAFOS HTML
 # ===============================
 def formatar_artigo_html(texto):
     paragrafos = texto.split("\n\n")
-    return "\n".join(f"<p>{p.strip()}</p>" for p in paragrafos if p.strip())
+    return "\n".join(
+        f"<p>{p.strip()}</p>" for p in paragrafos if p.strip()
+    )
 
 # ===============================
-# MONTA HTML FINAL
+# MONTA HTML FINAL DO POST
 # ===============================
 def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html):
     return f"""
@@ -62,24 +62,24 @@ def montar_conteudo_post(titulo, imagem_url, texto_artigo_html, assinatura_html)
 """
 
 # ===============================
-# PUBLICAÇÃO
+# PUBLICAÇÃO NO BLOGGER
 # ===============================
 def publicar_post():
     creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    with open("content/titulo.txt", "r", encoding="utf-8") as f:
+    with open("content/titulo.txt", encoding="utf-8") as f:
         titulo = f.read().strip()
 
-    with open("content/artigo_pronto.txt", "r", encoding="utf-8") as f:
+    with open("content/artigo_pronto.txt", encoding="utf-8") as f:
         texto_raw = f.read()
 
-    with open("content/assinatura.html", "r", encoding="utf-8") as f:
+    with open("content/assinatura.html", encoding="utf-8") as f:
         assinatura_html = f.read()
 
     texto_html = formatar_artigo_html(texto_raw)
 
-    imagem_url = "https://URL-DA-SUA-IMAGEM.jpg"
+    imagem_url = "https://URL-DA-SUA-IMAGEM.jpg"  # ajuste se quiser
 
     conteudo = montar_conteudo_post(
         titulo,
@@ -90,7 +90,10 @@ def publicar_post():
 
     service.posts().insert(
         blogId=BLOG_ID,
-        body={"title": titulo, "content": conteudo},
+        body={
+            "title": titulo,
+            "content": conteudo
+        },
         isDraft=False
     ).execute()
 
@@ -100,4 +103,5 @@ def publicar_post():
 # EXECUÇÃO
 # ===============================
 if __name__ == "__main__":
+    print("🚀 Iniciando automação Blogger")
     publicar_post()
