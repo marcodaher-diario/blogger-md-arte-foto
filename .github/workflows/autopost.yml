@@ -25,6 +25,8 @@ jobs:
       - name: Gerar conteúdo e publicar
         env:
           BLOGGER_TOKEN: ${{ secrets.BLOGGER_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
         run: |
           python main.py
+
