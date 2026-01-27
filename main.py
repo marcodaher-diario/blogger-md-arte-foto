@@ -1,61 +1,119 @@
 import os
 import json
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from openai import OpenAI
 
+# ===============================
+# CONFIGURAÇÕES
+# ===============================
+SCOPES = ["https://www.googleapis.com/auth/blogger"]
 BLOG_ID = "5852420775961497718"
+CONTENT_DIR = "content"
 
-BASE_DIR = os.getcwd()
-CONTENT_DIR = os.path.join(BASE_DIR, "content")
-
-ARTIGO_PATH = os.path.join(CONTENT_DIR, "artigo_pronto.txt")
-ASSINATURA_PATH = os.path.join(CONTENT_DIR, "assinatura.html")
-TITULO_PATH = os.path.join(CONTENT_DIR, "titulo.txt")
-
-print("📂 Diretório atual:", BASE_DIR)
+print("📂 Diretório atual:", os.getcwd())
 print("📁 Arquivos em content:", os.listdir(CONTENT_DIR))
 
-def ler_arquivo(caminho):
-    if not os.path.exists(caminho):
-        print(f"❌ Arquivo não encontrado: {caminho}")
-        return ""
-    with open(caminho, "r", encoding="utf-8") as f:
-        conteudo = f.read().strip()
-        print(f"📄 Conteúdo lido ({os.path.basename(caminho)}): {len(conteudo)} caracteres")
-        return conteudo
+# ===============================
+# IA – GERA CONTEÚDO
+# ===============================
+def gerar_conteudo_ia():
+    print("🤖 Gerando conteúdo com IA...")
 
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    prompt = """
+    Crie um artigo educativo para um blog de fotografia amadora.
+    Tema: Erros comuns que iniciantes cometem ao fotografar.
+    Linguagem clara, didática e envolvente.
+    Gere:
+    1) Um título chamativo
+    2) Um artigo com cerca de 600 palavras
+    """
+
+    resposta = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    texto = resposta.choices[0].message.content.strip()
+
+    # Separação simples
+    linhas = texto.split("\n")
+    titulo = linhas[0]
+    artigo = "\n".join(linhas[1:]).strip()
+
+    os.makedirs(CONTENT_DIR, exist_ok=True)
+
+    with open(f"{CONTENT_DIR}/titulo.txt", "w", encoding="utf-8") as f:
+        f.write(titulo)
+
+    with open(f"{CONTENT_DIR}/artigo_pronto.txt", "w", encoding="utf-8") as f:
+        f.write(artigo)
+
+    print("✅ Conteúdo gerado com sucesso")
+
+# ===============================
+# AUTENTICAÇÃO BLOGGER
+# ===============================
+def autenticar():
+    print("🔐 Autenticando no Blogger")
+
+    token_info = json.loads(os.environ["BLOGGER_TOKEN"])
+    creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+    return creds
+
+# ===============================
+# FORMATA HTML
+# ===============================
+def formatar_artigo_html(texto):
+    paragrafos = texto.split("\n\n")
+    return "\n".join(f"<p>{p.strip()}</p>" for p in paragrafos if p.strip())
+
+# ===============================
+# PUBLICAR POST
+# ===============================
 def publicar_post():
-    print("🚀 Iniciando automação Blogger")
-    print("🔐 Autenticando via BLOGGER_TOKEN")
+    print("🚀 Publicando no Blogger")
 
-    token_json = json.loads(os.environ["BLOGGER_TOKEN"])
-    creds = Credentials.from_authorized_user_info(token_json)
-
+    creds = autenticar()
     service = build("blogger", "v3", credentials=creds)
 
-    titulo = ler_arquivo(TITULO_PATH)
-    artigo = ler_arquivo(ARTIGO_PATH)
-    assinatura = ler_arquivo(ASSINATURA_PATH)
+    with open("content/titulo.txt", "r", encoding="utf-8") as f:
+        titulo = f.read().strip()
 
-    if not artigo:
-        raise Exception("❌ O artigo está vazio. Publicação cancelada.")
+    with open("content/artigo_pronto.txt", "r", encoding="utf-8") as f:
+        artigo = f.read().strip()
 
-    conteudo_final = artigo + "\n\n<hr>\n\n" + assinatura
+    with open("content/assinatura.html", "r", encoding="utf-8") as f:
+        assinatura = f.read()
 
-    post = {
-        "kind": "blogger#post",
-        "title": titulo,
-        "content": conteudo_final
-    }
+    if not titulo or not artigo:
+        raise Exception("❌ Conteúdo vazio. Publicação abortada.")
 
-    response = service.posts().insert(
+    artigo_html = formatar_artigo_html(artigo)
+
+    conteudo = f"""
+    <div class="post-body entry-content">
+        <h1 style="text-align:center;">{titulo}</h1>
+        {artigo_html}
+        <div style="margin-top:30px;">
+            {assinatura}
+        </div>
+    </div>
+    """
+
+    service.posts().insert(
         blogId=BLOG_ID,
-        body=post,
+        body={"title": titulo, "content": conteudo},
         isDraft=False
     ).execute()
 
-    print("✅ Post publicado com sucesso!")
-    print("🔗 URL:", response["url"])
+    print("✅ Post publicado com sucesso")
 
+# ===============================
+# EXECUÇÃO
+# ===============================
 if __name__ == "__main__":
+    gerar_conteudo_ia()
     publicar_post()
