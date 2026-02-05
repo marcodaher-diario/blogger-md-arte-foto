@@ -1,0 +1,28 @@
+name: Bot Emagrecer com Saúde
+on:
+  schedule:
+    - cron: '0 12 * * 1' # Roda toda segunda-feira às 12:00
+  workflow_dispatch: # Permite que você rode manualmente
+
+jobs:
+  executar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Dependências
+        run: |
+          pip install google-auth google-api-python-client google-auth-oauthlib
+          pip install -U google-genai requests
+
+      - name: Rodar Bot
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python run_bot.py
