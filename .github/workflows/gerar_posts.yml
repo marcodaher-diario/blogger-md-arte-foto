@@ -1,14 +1,14 @@
-name: Gerar posts para a planilha (Fotografia)
-
+name: Bot Emagrecer com Saúde
 on:
-  workflow_dispatch:  # execução manual
+  schedule:
+    - cron: '0 12 * * 1' # Roda toda segunda-feira às 12:00
+  workflow_dispatch: # Permite que você rode manualmente
 
 jobs:
-  gerar_posts:
+  executar:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do repositório
+      - name: Checkout Código
         uses: actions/checkout@v4
 
       - name: Configurar Python
@@ -16,14 +16,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar dependências
+      - name: Instalar Dependências
         run: |
-          pip install -r requirements.txt
+          pip install google-auth google-api-python-client google-auth-oauthlib
+          pip install -U google-genai requests
 
-      - name: Gerar posts e preencher planilha
+      - name: Rodar Bot
         env:
-          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
-          SHEET_ID: ${{ secrets.SHEET_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python gerar_posts.py
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python run_bot.py
