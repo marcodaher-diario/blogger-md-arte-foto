@@ -1,4 +1,4 @@
-name: Bot Emagrecer com Saúde
+name: Bot MD Arte Foto
 on:
   schedule:
     - cron: '0 12 * * 1' # Roda toda segunda-feira às 12:00
