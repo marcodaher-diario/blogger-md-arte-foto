@@ -1,6 +1,5 @@
 def obter_esqueleto_html(dados):
     cor_base = "#003366"  # Azul Marinho MD
-    link_wa = f"https://api.whatsapp.com/send?text=Olha que artigo interessante que li no blog do Marco Daher: {dados['titulo']} - Confira aqui!"
     
     html = f"""
     <div style="color: {cor_base}; font-family: Arial, sans-serif; line-height: 1.6;">
@@ -48,19 +47,7 @@ def obter_esqueleto_html(dados):
             {dados['texto_conclusao']}
         </div>
 
-        <div style='background-color: #f0f4f8; border-radius: 10px; padding: 20px; margin: 30px 0 10px 0; text-align: center; border: 1px dashed {cor_base};'>
-            <p style='font-weight: bold; margin-bottom: 15px;'>🚀 Gostou deste conteúdo? Não guarde só para você!</p>
-            
-            <a href='{link_wa}' target='_blank' style='background-color: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-bottom: 10px;'>
-                Compartilhar no WhatsApp
-            </a>
-            
-            <p style='font-size: small; margin-top: 10px;'>
-                Acompanhe mais dicas e novidades em nossa <b>Rede de Conhecimento MD</b> logo abaixo.
-            </p>
-        </div>
-
-        <div style='margin-top: 0; padding-top: 0;'>
+        <div style='margin-top: 10px; padding-top: 0;'>
             {dados['assinatura']}
         </div>
     </div>
