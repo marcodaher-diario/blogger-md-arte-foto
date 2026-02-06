@@ -81,14 +81,15 @@ def executar():
     with open("temas.txt", "r", encoding="utf-8") as f:
         temas = [l.strip() for l in f.readlines() if l.strip()]
     
-    tema = random.choice(temas)
-    print(f"🚀 Produzindo Artigo Longo e SEO: {tema}")
+   tema = random.choice(temas)
+    print(f"🚀 Produzindo Artigo para MD Arte Foto: {tema}")
 
+    # É AQUI QUE ENTRA O NOVO PROMPT:
     prompt_json = (
-        f"Aja como um redator especialista. Escreva um artigo PROFUNDO de 800 palavras sobre {tema}.\n"
+        f"Aja como um Fotógrafo Profissional e Crítico de Arte. Escreva um artigo PROFUNDO e técnico de 800 palavras sobre {tema}.\n\n"
         "Responda EXCLUSIVAMENTE em formato JSON com estas chaves:\n"
-        "'intro', 'sub1', 'texto1', 'sub2', 'texto2', 'sub3', 'texto3', 'texto_conclusao'.\n"
-        "Não use Markdown, não use '#', use tom educativo e profissional."
+        "'intro', 'sub1', 'texto1', 'sub2', 'texto2', 'sub3', 'texto3', 'texto_conclusao', 'chamada_social'.\n\n"
+        "REGRAS: Use termos técnicos (ex: Bokeh, RAW, Regra dos Terços). Tom sofisticado e educativo. Sem Markdown (#)."
     )
 
     try:
